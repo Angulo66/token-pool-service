@@ -82,6 +82,76 @@ func (c *BalancerPoolClient) GetPools() ([]etypes.SubgraphPoolBase, error) {
 	return pools, nil
 }
 
+func (c *BalancerPoolClient) GetPoolByID(id string) ([]etypes.SubgraphPoolBase, error) {
+	ctx, cancel := c.getContext()
+
+	query := poolById(id)
+	jsonValue, _ := json.Marshal(query)
+	defer cancel()
+	request, err := http.NewRequestWithContext(ctx, "POST", c.cfg.QueryURI, bytes.NewBuffer(jsonValue))
+	if err != nil {
+		return nil, err
+	}
+
+	response, err := c.httpClient.Do(request)
+	if err != nil {
+		return nil, err
+	}
+	defer response.Body.Close()
+
+	data, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	var result map[string]interface{}
+	json.Unmarshal([]byte(data), &result)
+
+	res := result["data"].(map[string]interface{})["pools"].([]interface{})
+	var pools []etypes.SubgraphPoolBase
+
+	b, err := json.Marshal(res)
+	if err != nil {
+		return nil, err
+	}
+	json.Unmarshal(b, &pools)
+	return pools, nil
+}
+
+func poolById(id string) map[string]string {
+	return map[string]string{
+		"query": `{
+				pools(where: { id: "` + id + `" }) {
+				  id
+				  address
+				  poolType
+				  swapFee
+				  swapEnabled
+				  totalShares
+				  tokens {
+					address
+					name
+					symbol
+					decimals
+					balance
+					weight
+				  }
+				  tokensList
+				  totalWeight
+				  amp
+				  expiryTime
+				  unitSeconds
+				  principalToken
+				  baseToken
+				  mainIndex
+				  wrappedIndex
+				  lowerTarget
+				  upperTarget
+			  }
+			}`,
+	}
+}
+
 // TODO: remove this
 func balancerV2PoolsQuery() map[string]string {
 	return map[string]string{
@@ -99,6 +169,7 @@ func balancerV2PoolsQuery() map[string]string {
 					symbol
 					decimals
 					balance
+					weight
 				  }
 				  tokensList
 				  totalWeight
