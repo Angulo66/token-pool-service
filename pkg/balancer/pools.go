@@ -19,7 +19,7 @@ type BalancerPoolClient struct {
 	logger     zerolog.Logger
 	cfg        config.PoolConfiguration
 	wg         *sync.WaitGroup
-	poolbase   *[]etypes.SubgraphPoolBase
+	poolbase   []etypes.SubgraphPoolBase
 	httpClient *http.Client
 }
 
@@ -34,12 +34,16 @@ func NewBalancerPoolClient(cfg config.PoolConfiguration) *BalancerPoolClient {
 	if err != nil {
 		b.logger.Error().Err(err).Msg("Error getting pools")
 	}
-	b.poolbase = &pools
+	b.poolbase = pools
 	return b
 }
 
 func (c *BalancerPoolClient) GetConfig() config.PoolConfiguration {
 	return c.cfg
+}
+
+func (c *BalancerPoolClient) GetPoolBase() []etypes.SubgraphPoolBase {
+	return c.poolbase
 }
 
 func (c *BalancerPoolClient) getContext() (context.Context, context.CancelFunc) {
